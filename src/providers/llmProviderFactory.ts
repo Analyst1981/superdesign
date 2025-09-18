@@ -2,6 +2,10 @@ import * as vscode from 'vscode';
 import { LLMProvider, LLMProviderType } from './llmProvider';
 import { ClaudeApiProvider } from './claudeApiProvider';
 import { ClaudeCodeProvider } from './claudeCodeProvider';
+import { ModelScopeProvider } from './modelScopeProvider';
+import { DeepSeekProvider } from './deepSeekProvider';
+import { KimiProvider } from './kimiProvider';
+import { GLMProvider } from './glmProvider';
 import { Logger } from '../services/logger';
 
 export class LLMProviderFactory {
@@ -56,6 +60,18 @@ export class LLMProviderFactory {
             case LLMProviderType.CLAUDE_CODE:
                 return new ClaudeCodeProvider(this.outputChannel);
             
+            case LLMProviderType.MODELSCOPE:
+                return new ModelScopeProvider(this.outputChannel);
+            
+            case LLMProviderType.DEEPSEEK:
+                return new DeepSeekProvider(this.outputChannel);
+            
+            case LLMProviderType.KIMI:
+                return new KimiProvider(this.outputChannel);
+            
+            case LLMProviderType.GLM:
+                return new GLMProvider(this.outputChannel);
+            
             default:
                 throw new Error(`Unknown provider type: ${providerType}`);
         }
@@ -69,6 +85,14 @@ export class LLMProviderFactory {
         switch (providerType.toLowerCase()) {
             case 'claude-code':
                 return LLMProviderType.CLAUDE_CODE;
+            case 'modelscope':
+                return LLMProviderType.MODELSCOPE;
+            case 'deepseek':
+                return LLMProviderType.DEEPSEEK;
+            case 'kimi':
+                return LLMProviderType.KIMI;
+            case 'glm':
+                return LLMProviderType.GLM;
             case 'claude-api':
             default:
                 return LLMProviderType.CLAUDE_API;
@@ -114,6 +138,26 @@ export class LLMProviderFactory {
                 type: LLMProviderType.CLAUDE_CODE,
                 name: 'Claude Code Binary',
                 description: 'Uses local claude-code binary for enhanced code execution capabilities'
+            },
+            {
+                type: LLMProviderType.MODELSCOPE,
+                name: 'ModelScope (魔搭社区)',
+                description: 'Uses ModelScope API for Chinese AI models like Qwen series'
+            },
+            {
+                type: LLMProviderType.DEEPSEEK,
+                name: 'DeepSeek',
+                description: 'Uses DeepSeek API for advanced reasoning and coding capabilities'
+            },
+            {
+                type: LLMProviderType.KIMI,
+                name: 'Kimi (Moonshot AI)',
+                description: 'Uses Kimi API for long context understanding and Chinese language optimization'
+            },
+            {
+                type: LLMProviderType.GLM,
+                name: 'GLM (智谱AI)',
+                description: 'Uses GLM API for Chinese language optimization and multimodal capabilities'
             }
         ];
     }
@@ -137,6 +181,18 @@ export class LLMProviderFactory {
                         break;
                     case LLMProviderType.CLAUDE_CODE:
                         errorMessage = 'Claude Code binary is not available. Please install claude-code CLI tool.';
+                        break;
+                    case LLMProviderType.MODELSCOPE:
+                        errorMessage = 'ModelScope API key is required. Please configure superdesign.modelScopeApiKey';
+                        break;
+                    case LLMProviderType.DEEPSEEK:
+                        errorMessage = 'DeepSeek API key is required. Please configure superdesign.deepSeekApiKey';
+                        break;
+                    case LLMProviderType.KIMI:
+                        errorMessage = 'Kimi API key is required. Please configure superdesign.kimiApiKey';
+                        break;
+                    case LLMProviderType.GLM:
+                        errorMessage = 'GLM API key is required. Please configure superdesign.glmApiKey';
                         break;
                 }
                 

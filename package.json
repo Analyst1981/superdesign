@@ -69,6 +69,26 @@
         "category": "Superdesign"
       },
       {
+        "command": "superdesign.configureModelScopeApiKey",
+        "title": "Configure ModelScope API Key",
+        "category": "Superdesign"
+      },
+      {
+        "command": "superdesign.configureDeepSeekApiKey",
+        "title": "Configure DeepSeek API Key",
+        "category": "Superdesign"
+      },
+      {
+        "command": "superdesign.configureKimiApiKey",
+        "title": "Configure Kimi API Key",
+        "category": "Superdesign"
+      },
+      {
+        "command": "superdesign.configureGLMApiKey",
+        "title": "Configure GLM API Key",
+        "category": "Superdesign"
+      },
+      {
         "command": "superdesign.showChatSidebar",
         "title": "Show Chat Sidebar",
         "category": "Superdesign"
@@ -147,11 +167,19 @@
           "type": "string",
           "enum": [
             "claude-api",
-            "claude-code"
+            "claude-code",
+            "modelscope",
+            "deepseek",
+            "kimi",
+            "glm"
           ],
           "enumDescriptions": [
             "Use Anthropic API key to communicate with Claude via SDK",
-            "Use local claude binary for enhanced code execution capabilities"
+            "Use local claude binary for enhanced code execution capabilities",
+            "Use ModelScope (魔搭社区) API for Chinese AI models",
+            "Use DeepSeek API for advanced reasoning capabilities",
+            "Use Kimi (Moonshot AI) API for long context understanding",
+            "Use GLM (智谱AI) API for Chinese language optimization"
           ],
           "default": "claude-api",
           "description": "Choose the LLM provider to use for AI interactions",
@@ -215,6 +243,74 @@
         "superdesign.aiModel": {
           "type": "string",
           "description": "Specific AI model to use (e.g., gpt-4o, claude-3-5-sonnet-20241022)",
+          "scope": "application"
+        },
+        "superdesign.modelScopeApiKey": {
+          "type": "string",
+          "description": "ModelScope (魔搭社区) API key for Chinese AI models",
+          "scope": "application"
+        },
+        "superdesign.modelScopeModelId": {
+          "type": "string",
+          "enum": [
+            "qwen-turbo",
+            "qwen-plus",
+            "qwen-max",
+            "qwen-vl-plus",
+            "qwen-vl-max"
+          ],
+          "default": "qwen-turbo",
+          "description": "ModelScope model ID to use",
+          "scope": "application"
+        },
+        "superdesign.deepSeekApiKey": {
+          "type": "string",
+          "description": "DeepSeek API key for advanced reasoning models",
+          "scope": "application"
+        },
+        "superdesign.deepSeekModelId": {
+          "type": "string",
+          "enum": [
+            "deepseek-chat",
+            "deepseek-coder",
+            "deepseek-reasoner"
+          ],
+          "default": "deepseek-chat",
+          "description": "DeepSeek model ID to use",
+          "scope": "application"
+        },
+        "superdesign.kimiApiKey": {
+          "type": "string",
+          "description": "Kimi (Moonshot AI) API key for long context understanding",
+          "scope": "application"
+        },
+        "superdesign.kimiModelId": {
+          "type": "string",
+          "enum": [
+            "moonshot-v1-8k",
+            "moonshot-v1-32k",
+            "moonshot-v1-128k"
+          ],
+          "default": "moonshot-v1-8k",
+          "description": "Kimi model ID to use",
+          "scope": "application"
+        },
+        "superdesign.glmApiKey": {
+          "type": "string",
+          "description": "GLM (智谱AI) API key for Chinese language optimization",
+          "scope": "application"
+        },
+        "superdesign.glmModelId": {
+          "type": "string",
+          "enum": [
+            "glm-4",
+            "glm-4v",
+            "glm-3-turbo",
+            "chatglm3-6b",
+            "codegeex2-6b"
+          ],
+          "default": "glm-4",
+          "description": "GLM model ID to use",
           "scope": "application"
         }
       }

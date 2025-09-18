@@ -1278,6 +1278,23 @@ export function activate(context: vscode.ExtensionContext) {
     await configureOpenAIUrl();
   });
 
+	// Register Chinese LLM API key configuration commands
+	const configureModelScopeApiKeyDisposable = vscode.commands.registerCommand('superdesign.configureModelScopeApiKey', async () => {
+		await configureModelScopeApiKey();
+	});
+
+	const configureDeepSeekApiKeyDisposable = vscode.commands.registerCommand('superdesign.configureDeepSeekApiKey', async () => {
+		await configureDeepSeekApiKey();
+	});
+
+	const configureKimiApiKeyDisposable = vscode.commands.registerCommand('superdesign.configureKimiApiKey', async () => {
+		await configureKimiApiKey();
+	});
+
+	const configureGLMApiKeyDisposable = vscode.commands.registerCommand('superdesign.configureGLMApiKey', async () => {
+		await configureGLMApiKey();
+	});
+
 	// Create the chat sidebar provider
 	const sidebarProvider = new ChatSidebarProvider(context.extensionUri, customAgent, Logger.getOutputChannel());
 	
@@ -1396,6 +1413,10 @@ export function activate(context: vscode.ExtensionContext) {
 		configureOpenAIApiKeyDisposable,
 		configureOpenRouterApiKeyDisposable,
     configureOpenAIUrlDisposable,
+		configureModelScopeApiKeyDisposable,
+		configureDeepSeekApiKeyDisposable,
+		configureKimiApiKeyDisposable,
+		configureGLMApiKeyDisposable,
 		sidebarDisposable,
 		showSidebarDisposable,
 		openCanvasDisposable,
@@ -1579,6 +1600,174 @@ async function configureOpenAIUrl() {
       vscode.window.showWarningMessage('No Url was set');
     }
   }
+}
+
+// Function to configure ModelScope API key
+async function configureModelScopeApiKey() {
+	const currentKey = vscode.workspace.getConfiguration('superdesign').get<string>('modelScopeApiKey');
+
+	const input = await vscode.window.showInputBox({
+		title: 'Configure ModelScope API Key',
+		prompt: 'Enter your ModelScope API key (get one from https://modelscope.cn/)',
+		value: currentKey ? '••••••••••••••••' : '',
+		password: true,
+		placeHolder: 'ms-...',
+		validateInput: (value) => {
+			if (!value || value.trim().length === 0) {
+				return 'API key cannot be empty';
+			}
+			if (value === '••••••••••••••••') {
+				return null; // User didn't change the masked value, that's OK
+			}
+			return null;
+		}
+	});
+
+	if (input !== undefined) {
+		// Only update if user didn't just keep the masked value
+		if (input !== '••••••••••••••••') {
+			try {
+				await vscode.workspace.getConfiguration('superdesign').update(
+					'modelScopeApiKey', 
+					input.trim(), 
+					vscode.ConfigurationTarget.Global
+				);
+				vscode.window.showInformationMessage('✅ ModelScope API key configured successfully!');
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to save API key: ${error}`);
+			}
+		} else if (currentKey) {
+			vscode.window.showInformationMessage('API key unchanged (already configured)');
+		} else {
+			vscode.window.showWarningMessage('No API key was set');
+		}
+	}
+}
+
+// Function to configure DeepSeek API key
+async function configureDeepSeekApiKey() {
+	const currentKey = vscode.workspace.getConfiguration('superdesign').get<string>('deepSeekApiKey');
+
+	const input = await vscode.window.showInputBox({
+		title: 'Configure DeepSeek API Key',
+		prompt: 'Enter your DeepSeek API key (get one from https://platform.deepseek.com/)',
+		value: currentKey ? '••••••••••••••••' : '',
+		password: true,
+		placeHolder: 'sk-...',
+		validateInput: (value) => {
+			if (!value || value.trim().length === 0) {
+				return 'API key cannot be empty';
+			}
+			if (value === '••••••••••••••••') {
+				return null; // User didn't change the masked value, that's OK
+			}
+			return null;
+		}
+	});
+
+	if (input !== undefined) {
+		// Only update if user didn't just keep the masked value
+		if (input !== '••••••••••••••••') {
+			try {
+				await vscode.workspace.getConfiguration('superdesign').update(
+					'deepSeekApiKey', 
+					input.trim(), 
+					vscode.ConfigurationTarget.Global
+				);
+				vscode.window.showInformationMessage('✅ DeepSeek API key configured successfully!');
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to save API key: ${error}`);
+			}
+		} else if (currentKey) {
+			vscode.window.showInformationMessage('API key unchanged (already configured)');
+		} else {
+			vscode.window.showWarningMessage('No API key was set');
+		}
+	}
+}
+
+// Function to configure Kimi API key
+async function configureKimiApiKey() {
+	const currentKey = vscode.workspace.getConfiguration('superdesign').get<string>('kimiApiKey');
+
+	const input = await vscode.window.showInputBox({
+		title: 'Configure Kimi API Key',
+		prompt: 'Enter your Kimi API key (get one from https://platform.moonshot.cn/)',
+		value: currentKey ? '••••••••••••••••' : '',
+		password: true,
+		placeHolder: 'sk-...',
+		validateInput: (value) => {
+			if (!value || value.trim().length === 0) {
+				return 'API key cannot be empty';
+			}
+			if (value === '••••••••••••••••') {
+				return null; // User didn't change the masked value, that's OK
+			}
+			return null;
+		}
+	});
+
+	if (input !== undefined) {
+		// Only update if user didn't just keep the masked value
+		if (input !== '••••••••••••••••') {
+			try {
+				await vscode.workspace.getConfiguration('superdesign').update(
+					'kimiApiKey', 
+					input.trim(), 
+					vscode.ConfigurationTarget.Global
+				);
+				vscode.window.showInformationMessage('✅ Kimi API key configured successfully!');
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to save API key: ${error}`);
+			}
+		} else if (currentKey) {
+			vscode.window.showInformationMessage('API key unchanged (already configured)');
+		} else {
+			vscode.window.showWarningMessage('No API key was set');
+		}
+	}
+}
+
+// Function to configure GLM API key
+async function configureGLMApiKey() {
+	const currentKey = vscode.workspace.getConfiguration('superdesign').get<string>('glmApiKey');
+
+	const input = await vscode.window.showInputBox({
+		title: 'Configure GLM API Key',
+		prompt: 'Enter your GLM API key (get one from https://open.bigmodel.cn/)',
+		value: currentKey ? '••••••••••••••••' : '',
+		password: true,
+		placeHolder: 'glm-...',
+		validateInput: (value) => {
+			if (!value || value.trim().length === 0) {
+				return 'API key cannot be empty';
+			}
+			if (value === '••••••••••••••••') {
+				return null; // User didn't change the masked value, that's OK
+			}
+			return null;
+		}
+	});
+
+	if (input !== undefined) {
+		// Only update if user didn't just keep the masked value
+		if (input !== '••••••••••••••••') {
+			try {
+				await vscode.workspace.getConfiguration('superdesign').update(
+					'glmApiKey', 
+					input.trim(), 
+					vscode.ConfigurationTarget.Global
+				);
+				vscode.window.showInformationMessage('✅ GLM API key configured successfully!');
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to save API key: ${error}`);
+			}
+		} else if (currentKey) {
+			vscode.window.showInformationMessage('API key unchanged (already configured)');
+		} else {
+			vscode.window.showWarningMessage('No API key was set');
+		}
+	}
 }
 
 class SuperdesignCanvasPanel {

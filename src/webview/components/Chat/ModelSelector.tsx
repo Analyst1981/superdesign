@@ -27,6 +27,29 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
         { id: 'claude-4-sonnet-20250514', name: 'Claude 4 Sonnet', provider: 'Anthropic', category: 'Balanced' },
         { id: 'claude-3-7-sonnet-20250219', name: 'Claude 3.7 Sonnet', provider: 'Anthropic', category: 'Balanced' },
         { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'Anthropic', category: 'Balanced' },
+        
+        // 中国大模型 - ModelScope (魔搭社区)
+        { id: 'qwen-turbo', name: 'Qwen Turbo', provider: 'ModelScope (魔搭社区)', category: 'Fast' },
+        { id: 'qwen-plus', name: 'Qwen Plus', provider: 'ModelScope (魔搭社区)', category: 'Balanced' },
+        { id: 'qwen-max', name: 'Qwen Max', provider: 'ModelScope (魔搭社区)', category: 'Premium' },
+        { id: 'qwen2.5-72b-instruct', name: 'Qwen2.5 72B Instruct', provider: 'ModelScope (魔搭社区)', category: 'Balanced' },
+        
+        // 中国大模型 - DeepSeek
+        { id: 'deepseek-chat', name: 'DeepSeek Chat', provider: 'DeepSeek', category: 'Balanced' },
+        { id: 'deepseek-coder', name: 'DeepSeek Coder', provider: 'DeepSeek', category: 'Balanced' },
+        { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner', provider: 'DeepSeek', category: 'Premium' },
+        
+        // 中国大模型 - Kimi (Moonshot AI)
+        { id: 'moonshot-v1-8k', name: 'Moonshot V1 8K', provider: 'Kimi (Moonshot AI)', category: 'Fast' },
+        { id: 'moonshot-v1-32k', name: 'Moonshot V1 32K', provider: 'Kimi (Moonshot AI)', category: 'Balanced' },
+        { id: 'moonshot-v1-128k', name: 'Moonshot V1 128K', provider: 'Kimi (Moonshot AI)', category: 'Premium' },
+        
+        // 中国大模型 - GLM (智谱AI)
+        { id: 'glm-4', name: 'GLM-4', provider: 'GLM (智谱AI)', category: 'Balanced' },
+        { id: 'glm-4-plus', name: 'GLM-4 Plus', provider: 'GLM (智谱AI)', category: 'Premium' },
+        { id: 'glm-4-air', name: 'GLM-4 Air', provider: 'GLM (智谱AI)', category: 'Fast' },
+        { id: 'glm-4-flash', name: 'GLM-4 Flash', provider: 'GLM (智谱AI)', category: 'Fast' },
+        
         // Google (OpenRouter)
         { id: 'google/gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'OpenRouter (Google)', category: 'Balanced' },
         // Meta (OpenRouter)
@@ -438,4 +461,4 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
     );
 };
 
-export default ModelSelector; 
+export default ModelSelector;

@@ -6,3 +6,46 @@ node_modules
 .env
 /dist-test
 /.superdesign
+
+# 敏感信息文件
+api_key.txt
+*.key
+*.secret
+
+# 测试和分析文件
+*test*.js
+*test*.json
+*analysis*.js
+*analysis*.json
+*connectivity*.js
+*connectivity*.json
+*functional*.js
+*functional*.json
+*feasibility*.js
+*feasibility*.json
+*performance*.js
+*performance*.json
+test-*.js
+
+# 备份文件
+*.backup
+*.bak
+*.old
+
+# 临时文件和日志
+*.log
+*.tmp
+temp/
+tmp/
+
+# 版本截图和临时图片
+v*.png
+temp*.png
+test*.png
+
+# IDE和编辑器文件
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

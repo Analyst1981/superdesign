@@ -70,7 +70,11 @@ export abstract class LLMProvider {
 
 export enum LLMProviderType {
     CLAUDE_API = 'claude-api',
-    CLAUDE_CODE = 'claude-code'
+    CLAUDE_CODE = 'claude-code',
+    MODELSCOPE = 'modelscope',
+    DEEPSEEK = 'deepseek',
+    KIMI = 'kimi',
+    GLM = 'glm'
 }
 
 export interface LLMProviderConfig {
