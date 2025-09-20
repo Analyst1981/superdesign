@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import ChatInterface from './components/Chat/ChatInterface';
 import CanvasView from './components/CanvasView';
+import SettingsPage from './components/SettingsPage';
+import TemplateDemo from './components/TemplateDemo';
 import { WebviewContext } from '../types/context';
 
 // Import CSS as string for esbuild
 import styles from './App.css';
+
+type ViewType = 'chat' | 'canvas' | 'settings' | 'template-demo';
 
 const App: React.FC = () => {
     console.log('🚀 App component starting...');
@@ -15,7 +19,7 @@ const App: React.FC = () => {
     });
     
     const [context, setContext] = useState<WebviewContext | null>(null);
-    const [currentView, setCurrentView] = useState<'chat' | 'canvas'>('chat');
+    const [currentView, setCurrentView] = useState<ViewType>('chat');
     const [nonce, setNonce] = useState<string | null>(null);
 
     useEffect(() => {
@@ -39,6 +43,12 @@ const App: React.FC = () => {
         if (viewType === 'canvas') {
             setCurrentView('canvas');
             console.log('🎨 Switching to canvas view');
+        } else if (viewType === 'settings') {
+            setCurrentView('settings');
+            console.log('⚙️ Switching to settings view');
+        } else if (viewType === 'template-demo') {
+            setCurrentView('template-demo');
+            console.log('📝 Switching to template demo view');
         } else {
             setCurrentView('chat');
             console.log('💬 Switching to chat view');
@@ -78,6 +88,22 @@ const App: React.FC = () => {
                 } catch (error) {
                     console.error('❌ Error rendering CanvasView:', error);
                     return <div>Error rendering canvas: {String(error)}</div>;
+                }
+            case 'settings':
+                console.log('⚙️ Rendering SettingsPage');
+                try {
+                    return <SettingsPage vscode={vscode} />;
+                } catch (error) {
+                    console.error('❌ Error rendering SettingsPage:', error);
+                    return <div>Error rendering settings: {String(error)}</div>;
+                }
+            case 'template-demo':
+                console.log('📝 Rendering TemplateDemo');
+                try {
+                    return <TemplateDemo />;
+                } catch (error) {
+                    console.error('❌ Error rendering TemplateDemo:', error);
+                    return <div>Error rendering template demo: {String(error)}</div>;
                 }
             case 'chat':
             default:

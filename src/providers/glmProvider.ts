@@ -220,7 +220,7 @@ export class GLMProvider extends LLMProvider {
      * 基于智谱AI的计费方式
      */
     private calculateCost(usage: any): number {
-        if (!usage) return 0;
+        if (!usage) {return 0;}
         
         // 智谱AI的计费方式（需要根据官方文档调整）
         const promptTokens = usage.prompt_tokens || 0;

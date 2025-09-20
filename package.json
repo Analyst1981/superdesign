@@ -120,6 +120,38 @@
         "title": "Open Settings",
         "category": "Superdesign",
         "icon": "$(settings-gear)"
+      },
+      {
+        "command": "superdesign.switchModel",
+        "title": "Switch AI Model",
+        "category": "Superdesign",
+        "icon": "$(code)"
+      },
+      {
+        "command": "superdesign.showModelInfo",
+        "title": "Show Model Information",
+        "category": "Superdesign",
+        "icon": "$(info)"
+      },
+      {
+        "command": "superdesign.configureQwenApiKey",
+        "title": "Configure Qwen API Key",
+        "category": "Superdesign"
+      },
+      {
+        "command": "superdesign.configureDoubaoApiKey",
+        "title": "Configure Doubao API Key",
+        "category": "Superdesign"
+      },
+      {
+        "command": "superdesign.exportConfigs",
+        "title": "Export Model Configurations",
+        "category": "Superdesign"
+      },
+      {
+        "command": "superdesign.importConfigs",
+        "title": "Import Model Configurations",
+        "category": "Superdesign"
       }
     ],
     "menus": {
@@ -148,6 +180,12 @@
           "id": "superdesign.chatView",
           "name": "SUPER DESIGN",
           "when": "true"
+        },
+        {
+          "type": "webview",
+          "id": "superdesign.settingsView",
+          "name": "设置",
+          "when": "false"
         }
       ]
     },
@@ -160,29 +198,66 @@
         }
       ]
     },
+    "webviewViewProviders": [
+      {
+        "id": "superdesign.chatView",
+        "name": "SUPER DESIGN",
+        "when": "true"
+      },
+      {
+        "id": "superdesign.settingsView",
+        "name": "设置",
+        "when": "false"
+      }
+    ],
     "configuration": {
       "title": "Superdesign",
       "properties": {
-        "superdesign.llmProvider": {
+        "superdesign.activeProvider": {
           "type": "string",
           "enum": [
             "claude-api",
             "claude-code",
             "modelscope",
             "deepseek",
-            "kimi",
-            "glm"
+            "moonshot",
+            "doubao",
+            "qwen",
+            "glm",
+            "openai",
+            "openrouter"
           ],
           "enumDescriptions": [
             "Use Anthropic API key to communicate with Claude via SDK",
             "Use local claude binary for enhanced code execution capabilities",
             "Use ModelScope (魔搭社区) API for Chinese AI models",
             "Use DeepSeek API for advanced reasoning capabilities",
-            "Use Kimi (Moonshot AI) API for long context understanding",
-            "Use GLM (智谱AI) API for Chinese language optimization"
+            "Use Moonshot (Kimi) API for long context understanding",
+            "Use Doubao API for ByteDance's AI models",
+            "Use Qwen API for Alibaba's large language models",
+            "Use GLM (智谱AI) API for Chinese language optimization",
+            "Use OpenAI API for GPT models",
+            "Use OpenRouter API for multiple model access"
           ],
           "default": "claude-api",
-          "description": "Choose the LLM provider to use for AI interactions",
+          "description": "Current active AI provider for model interactions",
+          "scope": "application"
+        },
+        "superdesign.customModelId": {
+          "type": "string",
+          "description": "Custom model ID to override provider default (e.g., gpt-4o, claude-3-5-sonnet-20241022)",
+          "scope": "application"
+        },
+        "superdesign.enableModelSwitching": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable runtime model switching between providers",
+          "scope": "application"
+        },
+        "superdesign.showModelInfo": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show detailed model information in chat interface",
           "scope": "application"
         },
         "superdesign.anthropicApiKey": {
@@ -268,15 +343,102 @@
           "description": "DeepSeek API key for advanced reasoning models",
           "scope": "application"
         },
+        "superdesign.deepSeekBaseUrl": {
+          "type": "string",
+          "default": "https://api.deepseek.com",
+          "description": "DeepSeek API base URL",
+          "scope": "application"
+        },
         "superdesign.deepSeekModelId": {
           "type": "string",
           "enum": [
             "deepseek-chat",
-            "deepseek-coder",
             "deepseek-reasoner"
           ],
           "default": "deepseek-chat",
-          "description": "DeepSeek model ID to use",
+          "description": "DeepSeek model ID to use"
+        },
+        "superdesign.deepSeekMaxTokens": {
+          "type": "number",
+          "default": 8192,
+          "description": "Maximum tokens for DeepSeek model responses",
+          "scope": "application"
+        },
+        "superdesign.deepSeekTemperature": {
+          "type": "number",
+          "default": 0.6,
+          "description": "Temperature for DeepSeek model responses (0.0-2.0)",
+          "scope": "application"
+        },
+        "superdesign.moonshotApiKey": {
+          "type": "string",
+          "description": "Moonshot (Kimi) API key for long context models",
+          "scope": "application"
+        },
+        "superdesign.moonshotBaseUrl": {
+          "type": "string",
+          "default": "https://api.moonshot.ai/v1",
+          "description": "Moonshot API base URL",
+          "scope": "application"
+        },
+        "superdesign.moonshotModelId": {
+          "type": "string",
+          "enum": [
+            "kimi-k2-0905-preview",
+            "kimi-k2-0711-preview",
+            "kimi-k2-turbo-preview"
+          ],
+          "default": "kimi-k2-0905-preview",
+          "description": "Moonshot model ID to use"
+        },
+        "superdesign.moonshotMaxTokens": {
+          "type": "number",
+          "default": 16384,
+          "description": "Maximum tokens for Moonshot model responses",
+          "scope": "application"
+        },
+        "superdesign.moonshotTemperature": {
+          "type": "number",
+          "default": 0.6,
+          "description": "Temperature for Moonshot model responses (0.0-2.0)",
+          "scope": "application"
+        },
+        "superdesign.doubaoApiKey": {
+          "type": "string",
+          "description": "Doubao (ByteDance) API key for AI models",
+          "scope": "application"
+        },
+        "superdesign.doubaoBaseUrl": {
+          "type": "string",
+          "default": "https://ark.cn-beijing.volces.com/api/v3",
+          "description": "Doubao API base URL",
+          "scope": "application"
+        },
+        "superdesign.doubaoModelId": {
+          "type": "string",
+          "enum": [
+            "doubao-lite-4k",
+            "doubao-lite-32k",
+            "doubao-lite-128k",
+            "doubao-pro-4k",
+            "doubao-pro-32k",
+            "doubao-pro-128k",
+            "doubao-vision-pro"
+          ],
+          "default": "doubao-lite-4k",
+          "description": "Doubao model ID to use",
+          "scope": "application"
+        },
+        "superdesign.doubaoMaxTokens": {
+          "type": "number",
+          "default": 32768,
+          "description": "Maximum tokens for Doubao model responses",
+          "scope": "application"
+        },
+        "superdesign.doubaoTemperature": {
+          "type": "number",
+          "default": 0.7,
+          "description": "Temperature for Doubao model responses (0.0-2.0)",
           "scope": "application"
         },
         "superdesign.kimiApiKey": {
@@ -295,29 +457,111 @@
           "description": "Kimi model ID to use",
           "scope": "application"
         },
+        "superdesign.qwenApiKey": {
+          "type": "string",
+          "description": "Qwen (Alibaba) API key for large language models",
+          "scope": "application"
+        },
+        "superdesign.qwenBaseUrl": {
+          "type": "string",
+          "default": "https://dashscope.aliyuncs.com/api/v1",
+          "description": "Qwen API base URL",
+          "scope": "application"
+        },
+        "superdesign.qwenModelId": {
+          "type": "string",
+          "enum": [
+            "qwen-turbo",
+            "qwen-plus",
+            "qwen-max",
+            "qwen-long",
+            "qwen-vl-plus",
+            "qwen-vl-max",
+            "qwen-coder-turbo",
+            "qwen-coder-plus"
+          ],
+          "default": "qwen-plus",
+          "description": "Qwen model ID to use",
+          "scope": "application"
+        },
+        "superdesign.qwenMaxTokens": {
+          "type": "number",
+          "default": 8192,
+          "description": "Maximum tokens for Qwen model responses",
+          "scope": "application"
+        },
+        "superdesign.qwenTemperature": {
+          "type": "number",
+          "default": 0.7,
+          "description": "Temperature for Qwen model responses (0.0-2.0)",
+          "scope": "application"
+        },
         "superdesign.glmApiKey": {
           "type": "string",
           "description": "GLM (智谱AI) API key for Chinese language optimization",
           "scope": "application"
         },
+        "superdesign.glmBaseUrl": {
+          "type": "string",
+          "default": "https://open.bigmodel.cn/api/paas/v4",
+          "description": "GLM API base URL",
+          "scope": "application"
+        },
         "superdesign.glmModelId": {
           "type": "string",
           "enum": [
-            "glm-4",
-            "glm-4v",
-            "glm-3-turbo",
-            "chatglm3-6b",
-            "codegeex2-6b"
+            "glm-4-plus",
+            "glm-4-0520",
+            "glm-4-long",
+            "glm-4-flash",
+            "glm-4-air",
+            "glm-4-voice"
           ],
-          "default": "glm-4",
-          "description": "GLM model ID to use",
+          "default": "glm-4-plus",
+          "description": "GLM model ID to use"
+        },
+        "superdesign.glmMaxTokens": {
+          "type": "number",
+          "default": 8192,
+          "description": "Maximum tokens for GLM model responses",
+          "scope": "application"
+        },
+        "superdesign.glmTemperature": {
+          "type": "number",
+          "default": 0.7,
+          "description": "Temperature for GLM model responses (0.0-2.0)",
+          "scope": "application"
+        },
+        "superdesign.zhipuApiKey": {
+          "type": "string",
+          "description": "Zhipu AI API key for advanced Chinese language models",
+          "scope": "application"
+        },
+        "superdesign.zhipuModelId": {
+          "type": "string",
+          "enum": [
+            "glm-4-plus",
+            "glm-4-0520",
+            "glm-4-long",
+            "glm-4v-plus",
+            "glm-4-air",
+            "glm-4-airx",
+            "glm-4-flash"
+          ],
+          "default": "glm-4-plus",
+          "description": "Zhipu AI model ID to use",
+          "scope": "application"
+        },
+        "superdesign.doubaoEndpointId": {
+          "type": "string",
+          "description": "Doubao custom endpoint ID (optional)",
           "scope": "application"
         }
       }
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run package",
+    "vscode:prepublish": "node esbuild.js --production",
     "compile": "npm run check-types && npm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
@@ -356,17 +600,24 @@
     "@ai-sdk/anthropic": "^1.2.12",
     "@ai-sdk/google": "^1.2.19",
     "@ai-sdk/openai": "^1.3.22",
-    "@anthropic-ai/claude-code": "^1.0.31",
+    "@anthropic-ai/sdk": "^0.63.0",
     "@openrouter/ai-sdk-provider": "^0.7.2",
+    "@playwright/test": "^1.55.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@vscode/codicons": "^0.0.36",
     "ai": "^4.3.16",
+    "axios": "^1.12.2",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
     "execa": "^9.6.0",
+    "express": "^5.1.0",
     "glob": "^11.0.3",
     "highlight.js": "^11.11.1",
     "lucide-react": "^0.522.0",
     "micromatch": "^4.0.8",
     "mime-types": "^3.0.1",
+    "openai": "^5.21.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",

@@ -6,14 +6,26 @@ import { ModelScopeProvider } from './modelScopeProvider';
 import { DeepSeekProvider } from './deepSeekProvider';
 import { KimiProvider } from './kimiProvider';
 import { GLMProvider } from './glmProvider';
+import { DoubaoProvider } from './doubaoProvider';
+import { QwenProvider } from './qwenProvider';
+import { ZhipuProvider } from './zhipuProvider';
+import { EnhancedLLMFactory, type EnhancedLLMProvider } from './enhanced-llm-factory.js';
+import { EnhancedProviderFactory } from './enhanced-provider-factory';
 import { Logger } from '../services/logger';
 
 export class LLMProviderFactory {
     private static instance: LLMProviderFactory;
     private providers: Map<LLMProviderType, LLMProvider> = new Map();
     private currentProvider: LLMProvider | null = null;
+    private enhancedFactory: EnhancedLLMFactory | null = null;
+    private enhancedProviderFactory: EnhancedProviderFactory | null = null;
+    private useEnhancedSystem: boolean = false;
 
-    private constructor(private outputChannel: vscode.OutputChannel) {}
+    private constructor(private outputChannel: vscode.OutputChannel) {
+        // 初始化增强系统
+        this.enhancedFactory = EnhancedLLMFactory.getInstance(outputChannel);
+        this.enhancedProviderFactory = EnhancedProviderFactory.getInstance(outputChannel);
+    }
 
     static getInstance(outputChannel: vscode.OutputChannel): LLMProviderFactory {
         if (!LLMProviderFactory.instance) {
@@ -72,9 +84,41 @@ export class LLMProviderFactory {
             case LLMProviderType.GLM:
                 return new GLMProvider(this.outputChannel);
             
+            case LLMProviderType.ZHIPU:
+                return new ZhipuProvider({
+                    outputChannel: this.outputChannel,
+                    apiKey: this.getConfigValue('zhipuApiKey', ''),
+                    modelId: this.getConfigValue('zhipuModelId', 'glm-4'),
+                    temperature: 0.7
+                });
+            
+            case LLMProviderType.QWEN:
+                return new QwenProvider({
+                    outputChannel: this.outputChannel,
+                    apiKey: this.getConfigValue('qwenApiKey', ''),
+                    modelId: this.getConfigValue('qwenModelId', 'qwen-plus'),
+                    temperature: 0.7
+                });
+            
+            case LLMProviderType.DOUBAO:
+                return new DoubaoProvider({
+                    outputChannel: this.outputChannel,
+                    apiKey: this.getConfigValue('doubaoApiKey', ''),
+                    modelId: this.getConfigValue('doubaoModelId', 'doubao-pro-32k'),
+                    temperature: 0.7
+                });
+            
             default:
                 throw new Error(`Unknown provider type: ${providerType}`);
         }
+    }
+    
+    /**
+     * 获取配置值
+     */
+    private getConfigValue(key: string, defaultValue: any): any {
+        const config = vscode.workspace.getConfiguration('superdesign');
+        return config.get(key, defaultValue);
     }
 
     private getConfiguredProviderType(): LLMProviderType {
@@ -93,6 +137,12 @@ export class LLMProviderFactory {
                 return LLMProviderType.KIMI;
             case 'glm':
                 return LLMProviderType.GLM;
+            case 'zhipu':
+                return LLMProviderType.ZHIPU;
+            case 'qwen':
+                return LLMProviderType.QWEN;
+            case 'doubao':
+                return LLMProviderType.DOUBAO;
             case 'claude-api':
             default:
                 return LLMProviderType.CLAUDE_API;
@@ -151,13 +201,28 @@ export class LLMProviderFactory {
             },
             {
                 type: LLMProviderType.KIMI,
-                name: 'Kimi (Moonshot AI)',
+                name: 'Kimi (月之暗面)',
                 description: 'Uses Kimi API for long context understanding and Chinese language optimization'
             },
             {
                 type: LLMProviderType.GLM,
                 name: 'GLM (智谱AI)',
                 description: 'Uses GLM API for Chinese language optimization and multimodal capabilities'
+            },
+            {
+                type: LLMProviderType.ZHIPU,
+                name: 'Zhipu AI (智谱AI)',
+                description: 'Uses Zhipu AI API for Chinese language understanding and generation'
+            },
+            {
+                type: LLMProviderType.QWEN,
+                name: 'Qwen (通义千问)',
+                description: 'Uses Qwen API for general knowledge Q&A and long context processing'
+            },
+            {
+                type: LLMProviderType.DOUBAO,
+                name: 'Doubao (豆包)',
+                description: 'Uses Doubao API for daily conversation and creative writing'
             }
         ];
     }
@@ -193,6 +258,15 @@ export class LLMProviderFactory {
                         break;
                     case LLMProviderType.GLM:
                         errorMessage = 'GLM API key is required. Please configure superdesign.glmApiKey';
+                        break;
+                    case LLMProviderType.ZHIPU:
+                        errorMessage = 'Zhipu AI API key is required. Please configure superdesign.zhipuApiKey';
+                        break;
+                    case LLMProviderType.QWEN:
+                        errorMessage = 'Qwen API key is required. Please configure superdesign.qwenApiKey';
+                        break;
+                    case LLMProviderType.DOUBAO:
+                        errorMessage = 'Doubao API key is required. Please configure superdesign.doubaoApiKey';
                         break;
                 }
                 
@@ -241,5 +315,281 @@ export class LLMProviderFactory {
     dispose(): void {
         this.providers.clear();
         this.currentProvider = null;
+    }
+
+    // ===== 增强模型管理系统方法 =====
+
+    /**
+     * 启用增强模型管理系统
+     */
+    enableEnhancedSystem(): void {
+        this.useEnhancedSystem = true;
+        this.enhancedFactory?.initialize();
+        Logger.info('Enhanced model management system enabled');
+    }
+
+    /**
+     * 禁用增强模型管理系统
+     */
+    disableEnhancedSystem(): void {
+        this.useEnhancedSystem = false;
+        Logger.info('Enhanced model management system disabled');
+    }
+
+    /**
+     * 获取增强的LLM提供商
+     * @param providerName 提供商名称（可选）
+     */
+    getEnhancedProvider(providerName?: string): EnhancedLLMProvider | null {
+        if (!this.useEnhancedSystem || !this.enhancedFactory) {
+            return null;
+        }
+        
+        try {
+            return this.enhancedFactory.createLLMProvider(providerName);
+        } catch (error) {
+            Logger.error(`Failed to create enhanced provider: ${error}`);
+            return null;
+        }
+    }
+
+    /**
+     * 切换到增强模型
+     * @param providerName 提供商名称
+     * @param modelId 模型ID（可选）
+     */
+    async switchToEnhancedModel(providerName: string, modelId?: string): Promise<boolean> {
+        if (!this.useEnhancedSystem || !this.enhancedFactory) {
+            Logger.warn('Enhanced system is not enabled');
+            return false;
+        }
+
+        try {
+            // 切换提供商
+            await this.enhancedFactory.switchProvider(providerName);
+            
+            // 如果指定了模型ID，切换模型
+            if (modelId) {
+                const provider = this.getEnhancedProvider(providerName);
+                if (provider) {
+                    await provider.switchModel(modelId);
+                }
+            }
+            
+            Logger.info(`Switched to enhanced model: ${providerName}${modelId ? `:${modelId}` : ''}`);
+            return true;
+        } catch (error) {
+            Logger.error(`Failed to switch to enhanced model: ${error}`);
+            return false;
+        }
+    }
+
+    /**
+     * 获取增强系统的状态
+     */
+    getEnhancedSystemStatus(): any {
+        if (!this.useEnhancedSystem || !this.enhancedFactory) {
+            return {
+                enabled: false,
+                reason: 'Enhanced system not enabled or not initialized'
+            };
+        }
+
+        return {
+            enabled: true,
+            ...this.enhancedFactory.getStatus()
+        };
+    }
+
+    /**
+     * 获取所有可用的增强模型
+     */
+    getAvailableEnhancedModels(): Record<string, any[]> {
+        if (!this.useEnhancedSystem || !this.enhancedFactory) {
+            return {};
+        }
+
+        return this.enhancedFactory.getAvailableModels();
+    }
+
+    /**
+     * 配置增强提供商
+     * @param providerName 提供商名称
+     * @param config 配置
+     */
+    async configureEnhancedProvider(providerName: string, config: any): Promise<boolean> {
+        if (!this.useEnhancedSystem || !this.enhancedFactory) {
+            Logger.warn('Enhanced system is not enabled');
+            return false;
+        }
+
+        try {
+            await this.enhancedFactory.configureProvider(providerName, config);
+            Logger.info(`Configured enhanced provider: ${providerName}`);
+            return true;
+        } catch (error) {
+            Logger.error(`Failed to configure enhanced provider: ${error}`);
+            return false;
+        }
+    }
+
+    /**
+     * 显示当前模型信息
+     */
+    showCurrentModelInfo(): void {
+        if (this.useEnhancedSystem && this.enhancedFactory) {
+            this.enhancedFactory.showModelInfo();
+        } else {
+            // 显示传统系统的信息
+            const currentProvider = this.getCurrentProvider();
+            if (currentProvider) {
+                vscode.window.showInformationMessage(
+                    `当前提供商: ${currentProvider.getProviderName()}\n` +
+                    `模型: ${currentProvider.getModelDisplayName()}\n` +
+                    `状态: ${currentProvider.isReady() ? '就绪' : '未就绪'}`
+                );
+            } else {
+                vscode.window.showInformationMessage('当前没有活动的提供商');
+            }
+        }
+    }
+
+    /**
+     * 导出增强系统配置
+     * @param filePath 文件路径
+     */
+    async exportEnhancedConfigs(filePath: string): Promise<boolean> {
+        if (!this.useEnhancedSystem || !this.enhancedFactory) {
+            Logger.warn('Enhanced system is not enabled');
+            return false;
+        }
+
+        try {
+            await this.enhancedFactory.exportConfigs(filePath);
+            return true;
+        } catch (error) {
+            Logger.error(`Failed to export enhanced configs: ${error}`);
+            return false;
+        }
+    }
+
+    /**
+     * 导入增强系统配置
+     * @param filePath 文件路径
+     */
+    async importEnhancedConfigs(filePath: string): Promise<boolean> {
+        if (!this.useEnhancedSystem || !this.enhancedFactory) {
+            Logger.warn('Enhanced system is not enabled');
+            return false;
+        }
+
+        try {
+            await this.enhancedFactory.importConfigs(filePath);
+            return true;
+        } catch (error) {
+            Logger.error(`Failed to import enhanced configs: ${error}`);
+            return false;
+        }
+    }
+
+    /**
+     * 使用增强提供商工厂进行提供商切换
+     * @param providerName 提供商名称
+     */
+    async switchToEnhancedProvider(providerName: string): Promise<boolean> {
+        if (!this.useEnhancedSystem || !this.enhancedProviderFactory) {
+            Logger.warn('Enhanced provider system is not enabled');
+            return false;
+        }
+
+        try {
+            const success = await this.enhancedProviderFactory.switchProvider(providerName);
+            if (success) {
+                Logger.info(`Successfully switched to enhanced provider: ${providerName}`);
+            }
+            return success;
+        } catch (error) {
+            Logger.error(`Failed to switch to enhanced provider ${providerName}: ${error}`);
+            return false;
+        }
+    }
+
+    /**
+     * 获取增强提供商状态
+     */
+    getEnhancedProviderStatus(): any {
+        if (!this.useEnhancedSystem || !this.enhancedProviderFactory) {
+            return {
+                enabled: false,
+                reason: 'Enhanced provider system not enabled'
+            };
+        }
+
+        return this.enhancedProviderFactory.getStatus();
+    }
+
+    /**
+     * 验证所有提供商配置
+     */
+    async validateAllProviderConfigs(): Promise<any> {
+        if (!this.useEnhancedSystem || !this.enhancedProviderFactory) {
+            Logger.warn('Enhanced provider system is not enabled');
+            return { enabled: false };
+        }
+
+        try {
+            const providers = this.enhancedProviderFactory.getProviders();
+            const validationResults: any = {};
+
+            for (const [name, instance] of providers) {
+                try {
+                    const validation = await this.enhancedProviderFactory.validateProvider(name);
+                    validationResults[name] = validation;
+                } catch (error) {
+                    validationResults[name] = {
+                        isValid: false,
+                        error: String(error)
+                    };
+                }
+            }
+
+            return {
+                enabled: true,
+                results: validationResults,
+                totalProviders: providers.size,
+                validProviders: Object.values(validationResults).filter((r: any) => r.isValid).length
+            };
+        } catch (error) {
+            Logger.error(`Failed to validate provider configs: ${error}`);
+            return {
+                enabled: true,
+                error: String(error)
+            };
+        }
+    }
+
+    /**
+     * 自动修复提供商配置
+     */
+    async autoRepairProviderConfigs(): Promise<any> {
+        if (!this.useEnhancedSystem || !this.enhancedProviderFactory) {
+            Logger.warn('Enhanced provider system is not enabled');
+            return { enabled: false };
+        }
+
+        try {
+            // 这里可以集成配置验证器的自动修复功能
+            Logger.info('Auto-repair provider configs - feature coming soon');
+            return {
+                enabled: true,
+                message: 'Auto-repair feature will be available soon'
+            };
+        } catch (error) {
+            Logger.error(`Failed to auto-repair provider configs: ${error}`);
+            return {
+                enabled: true,
+                error: String(error)
+            };
+        }
     }
 }

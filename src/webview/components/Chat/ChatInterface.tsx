@@ -228,6 +228,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ layout, vscode }) => {
             
             console.log('📤 Sending message with context:', currentContext);
             console.log('📤 Input message:', inputMessage);
+            console.log('🤖 Selected model:', selectedModel);
             
             // Check if we have image context to include
             if (currentContext && (currentContext.type === 'image' || currentContext.type === 'images')) {
@@ -314,7 +315,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ layout, vscode }) => {
                 console.log('📤 No context available, sending message as-is');
             }
             
-            sendMessage(messageContent);
+            sendMessage(messageContent, selectedModel);
             setInputMessage('');
         }
     };

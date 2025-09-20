@@ -74,7 +74,10 @@ export enum LLMProviderType {
     MODELSCOPE = 'modelscope',
     DEEPSEEK = 'deepseek',
     KIMI = 'kimi',
-    GLM = 'glm'
+    GLM = 'glm',
+    ZHIPU = 'zhipu',
+    QWEN = 'qwen',
+    DOUBAO = 'doubao'
 }
 
 export interface LLMProviderConfig {

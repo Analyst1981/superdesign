@@ -80,9 +80,9 @@ export class CustomAgentService implements AgentService {
         }
     }
 
-    private getModel() {
+    private getModel(specificModelOverride?: string) {
         const config = vscode.workspace.getConfiguration('superdesign');
-        const specificModel = config.get<string>('aiModel');
+        const specificModel = specificModelOverride || config.get<string>('aiModel');
         const provider = config.get<string>('aiModelProvider', 'anthropic');
         const openaiUrl = config.get<string>('openaiUrl');
         
@@ -601,10 +601,11 @@ I've created the html design, please reveiw and let me know if you need any chan
             await this.setupWorkingDirectory();
         }
 
-        // Check if claude-code is selected and use ClaudeCodeService instead
+        // Use model from options if provided, otherwise fallback to configuration
+        let selectedProvider = options?.model ? this.getProviderFromModel(options.model) : null;
         const config = vscode.workspace.getConfiguration('superdesign');
-        const aiModelProvider = config.get<string>('aiModelProvider', 'anthropic');
-        const llmProvider = config.get<string>('llmProvider', 'claude-api');
+        const aiModelProvider = selectedProvider || config.get<string>('aiModelProvider', 'anthropic');
+        const llmProvider = selectedProvider || config.get<string>('llmProvider', 'claude-api');
         
         // If either setting is set to claude-code, use ClaudeCodeService
         if (aiModelProvider === 'claude-code' || llmProvider === 'claude-code') {
@@ -672,7 +673,7 @@ I've created the html design, please reveiw and let me know if you need any chan
 
             // Prepare AI SDK input based on available data
             const streamTextConfig: any = {
-                model: this.getModel(),
+                model: this.getModel(options?.model),
                 system: this.getSystemPrompt(),
                 tools: tools,
                 toolCallStreaming: true,
@@ -984,5 +985,31 @@ I've created the html design, please reveiw and let me know if you need any chan
                lowerError.includes('permission_denied') ||
                lowerError.includes('api_key_invalid') ||
                lowerError.includes('unauthenticated');
+    }
+
+    private getProviderFromModel(modelId: string): string {
+        // 根据模型ID确定提供商
+        if (modelId.includes('claude-')) {
+            return 'anthropic';
+        } else if (modelId.includes('gpt-')) {
+            return 'openai';
+        } else if (modelId.includes('deepseek')) {
+            return 'deepseek';
+        } else if (modelId.includes('moonshot') || modelId.includes('kimi')) {
+            return 'moonshot';
+        } else if (modelId.includes('glm-')) {
+            return 'glm';
+        } else if (modelId.includes('qwen')) {
+            return 'qwen';
+        } else if (modelId.includes('doubao')) {
+            return 'doubao';
+        } else if (modelId.includes('baichuan')) {
+            return 'baichuan';
+        } else if (modelId.includes('/')) {
+            return 'openrouter';
+        } else {
+            // 默认情况
+            return 'claude-api';
+        }
     }
 } 

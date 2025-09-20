@@ -12,3 +12,23 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
+# 排除敏感文件和开发文件
+api_key.txt
+*.key
+*.pem
+.env
+.env.*
+Roo-Code-main/**/.env*
+# 排除开发相关文件
+.cursor/**
+.github/**
+pnpm-lock.yaml
+package-lock.json
+tsconfig.test.json
+system-prompt.txt
+test-settings.html
+FEASIBILITY_REPORT.md
+CHINESE_LLM_GUIDE.md
+QUICK_START_CN.md
+changelog.md
+readme.md

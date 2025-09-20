@@ -96,66 +96,160 @@ export class ChatSidebarProvider implements vscode.WebviewViewProvider {
     }
 
     private async handleGetCurrentProvider(webview: vscode.Webview) {
-        const config = vscode.workspace.getConfiguration('superdesign');
-        const currentProvider = config.get<string>('aiModelProvider', 'anthropic');
-        const currentModel = config.get<string>('aiModel');
+        // 首先尝试从settings.json文件读取
+        const fs = require('fs');
+        const path = require('path');
+        const settingsPath = path.join(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd(), 'settings.json');
         
-        // If no specific model is set, use defaults
-        let defaultModel: string;
-        switch (currentProvider) {
-            case 'openai':
-                defaultModel = 'gpt-4o';
-                break;
-            case 'openrouter':
-                defaultModel = 'anthropic/claude-3-7-sonnet-20250219';
-                break;
-            case 'anthropic':
-            default:
-                defaultModel = 'claude-3-5-sonnet-20241022';
-                break;
+        let selectedProvider = 'anthropic'; // 默认值
+        let selectedModel = 'claude-3-5-sonnet-20241022'; // 默认值
+        
+        try {
+            if (fs.existsSync(settingsPath)) {
+                const settingsContent = fs.readFileSync(settingsPath, 'utf8');
+                const settings = JSON.parse(settingsContent);
+                
+                selectedProvider = settings.selectedProvider || 'anthropic';
+                
+                // 根据选择的提供商获取对应的模型
+                switch (selectedProvider) {
+                    case 'openai':
+                        selectedModel = settings.openaiModelId || 'gpt-4o';
+                        break;
+                    case 'deepseek':
+                        selectedModel = settings.deepseekModelId || 'deepseek-chat';
+                        break;
+                    case 'moonshot':
+                        selectedModel = settings.moonshotModelId || 'moonshot-v1-128k';
+                        break;
+                    case 'glm':
+                        selectedModel = settings.glmModelId || 'glm-4';
+                        break;
+                    case 'qwen':
+                        selectedModel = settings.qwenModelId || 'qwen-turbo';
+                        break;
+                    case 'doubao':
+                        selectedModel = settings.doubaoModelId || 'doubao-pro-32k';
+                        break;
+                    case 'baichuan':
+                        selectedModel = settings.baichuanModelId || 'baichuan2-turbo';
+                        break;
+                    case 'openrouter':
+                        selectedModel = settings.openrouterModelId || 'anthropic/claude-3.5-sonnet';
+                        break;
+                    case 'gemini':
+                        selectedModel = settings.geminiModelId || 'gemini-1.5-pro';
+                        break;
+                    case 'anthropic':
+                    default:
+                        selectedModel = settings.anthropicModelId || 'claude-3-5-sonnet-20241022';
+                        break;
+                }
+            }
+        } catch (error) {
+            console.log('读取settings.json失败，使用默认配置:', error.message);
         }
         
         webview.postMessage({
             command: 'currentProviderResponse',
-            provider: currentProvider,
-            model: currentModel || defaultModel
+            provider: selectedProvider,
+            model: selectedModel
         });
     }
 
     private async handleChangeProvider(model: string, webview: vscode.Webview) {
         try {
-            const config = vscode.workspace.getConfiguration('superdesign');
-            
-            // Determine provider and API key based on model
+            // 确定提供商和模型
             let provider: string;
-            let apiKeyKey: string;
+            let modelIdField: string;
+            let apiKeyField: string;
             let configureCommand: string;
             let displayName: string;
             
             if (model.includes('/')) {
                 // OpenRouter model (contains slash like "openai/gpt-4o")
                 provider = 'openrouter';
-                apiKeyKey = 'openrouterApiKey';
+                modelIdField = 'openrouterModelId';
+                apiKeyField = 'openrouterApiKey';
                 configureCommand = 'superdesign.configureOpenRouterApiKey';
                 displayName = `OpenRouter (${this.getModelDisplayName(model)})`;
             } else if (model.startsWith('claude-')) {
                 provider = 'anthropic';
-                apiKeyKey = 'anthropicApiKey';
+                modelIdField = 'anthropicModelId';
+                apiKeyField = 'anthropicApiKey';
                 configureCommand = 'superdesign.configureApiKey';
                 displayName = `Anthropic (${this.getModelDisplayName(model)})`;
+            } else if (model.startsWith('deepseek-')) {
+                provider = 'deepseek';
+                modelIdField = 'deepseekModelId';
+                apiKeyField = 'deepseekApiKey';
+                configureCommand = 'superdesign.configureDeepSeekApiKey';
+                displayName = `DeepSeek (${this.getModelDisplayName(model)})`;
+            } else if (model.startsWith('moonshot-')) {
+                provider = 'moonshot';
+                modelIdField = 'moonshotModelId';
+                apiKeyField = 'moonshotApiKey';
+                configureCommand = 'superdesign.configureMoonshotApiKey';
+                displayName = `Kimi (${this.getModelDisplayName(model)})`;
+            } else if (model.startsWith('glm-')) {
+                provider = 'glm';
+                modelIdField = 'glmModelId';
+                apiKeyField = 'glmApiKey';
+                configureCommand = 'superdesign.configureGLMApiKey';
+                displayName = `GLM (${this.getModelDisplayName(model)})`;
+            } else if (model.startsWith('qwen')) {
+                provider = 'qwen';
+                modelIdField = 'qwenModelId';
+                apiKeyField = 'qwenApiKey';
+                configureCommand = 'superdesign.configureQwenApiKey';
+                displayName = `Qwen (${this.getModelDisplayName(model)})`;
+            } else if (model.startsWith('doubao-')) {
+                provider = 'doubao';
+                modelIdField = 'doubaoModelId';
+                apiKeyField = 'doubaoApiKey';
+                configureCommand = 'superdesign.configureDoubaoApiKey';
+                displayName = `Doubao (${this.getModelDisplayName(model)})`;
             } else {
                 provider = 'openai';
-                apiKeyKey = 'openaiApiKey';
+                modelIdField = 'openaiModelId';
+                apiKeyField = 'openaiApiKey';
                 configureCommand = 'superdesign.configureOpenAIApiKey';
                 displayName = `OpenAI (${this.getModelDisplayName(model)})`;
             }
             
-            // Update both provider and specific model
-            await config.update('aiModelProvider', provider, vscode.ConfigurationTarget.Global);
-            await config.update('aiModel', model, vscode.ConfigurationTarget.Global);
+            // 更新settings.json文件
+            const fs = require('fs');
+            const path = require('path');
+            const settingsPath = path.join(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd(), 'settings.json');
             
-            // Check if the API key is configured for the selected provider
-            const apiKey = config.get<string>(apiKeyKey);
+            try {
+                let settings = {};
+                if (fs.existsSync(settingsPath)) {
+                    const settingsContent = fs.readFileSync(settingsPath, 'utf8');
+                    settings = JSON.parse(settingsContent);
+                }
+                
+                // 更新设置
+                settings.selectedProvider = provider;
+                settings[modelIdField] = model;
+                
+                // 保存设置文件
+                fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+                console.log('设置已保存到settings.json:', { selectedProvider: provider, [modelIdField]: model });
+                
+            } catch (error) {
+                console.error('保存设置到settings.json失败:', error);
+                vscode.window.showErrorMessage(`Failed to save settings: ${error.message}`);
+                return;
+            }
+            
+            // 检查API密钥是否已配置
+            let apiKey = '';
+            if (fs.existsSync(settingsPath)) {
+                const settingsContent = fs.readFileSync(settingsPath, 'utf8');
+                const settings = JSON.parse(settingsContent);
+                apiKey = settings[apiKeyField] || '';
+            }
             
             if (!apiKey) {
                 const result = await vscode.window.showWarningMessage(
@@ -168,6 +262,11 @@ export class ChatSidebarProvider implements vscode.WebviewViewProvider {
                     await vscode.commands.executeCommand(configureCommand);
                 }
             }
+
+            // 同时更新VS Code配置（向后兼容）
+            const config = vscode.workspace.getConfiguration('superdesign');
+            await config.update('aiModelProvider', provider, vscode.ConfigurationTarget.Global);
+            await config.update('aiModel', model, vscode.ConfigurationTarget.Global);
 
             // Notify webview of successful change
             webview.postMessage({

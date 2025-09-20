@@ -31,6 +31,8 @@ Works seamlessly with Cursor, Windsurf, Claude Code, and plain VS Code.
 - 📝 **Wireframes**: Explore low-fidelity layouts for fast iteration
 - 🔁 **Fork & Iterate**: Duplicate and evolve designs easily
 - 📥 **Prompt-to-IDE**: Copy prompts into your favorite AI IDE (Cursor, Windsurf, Claude Code)
+- 🤖 **Multi-Model Support**: Compatible with Claude, GPT-4, and leading Chinese AI models
+- 🇨🇳 **Chinese AI Models**: Full support for Zhipu AI, Qwen, Doubao, and more
 
 ---
 
@@ -62,6 +64,30 @@ Instructions here (Click to play):
 1. Select open ai on Ai Model Provider
 2. Put anything in Openai Api Key input
 3. Add your OpenAi Url on the Openai Url input (example: http://127.0.0.1:1234/v1 for LM Studio)
+
+## 🇨🇳 Chinese AI Models Support
+
+SuperDesign now fully supports major Chinese AI model providers:
+
+### Supported Providers
+- **Zhipu AI (智谱AI)**: glm-4-plus, glm-4-0520, glm-4-long, etc.
+- **Qwen (通义千问)**: qwen-plus, qwen-turbo, qwen-max, etc.
+- **Doubao (豆包)**: doubao-pro-32k, doubao-pro-128k, doubao-vision, etc.
+
+### Quick Setup
+1. Open Command Palette (`Ctrl+Shift+P`)
+2. Run one of these commands:
+   - `SuperDesign: Configure Zhipu API Key`
+   - `SuperDesign: Configure Qwen API Key`
+   - `SuperDesign: Configure Doubao API Key`
+3. Enter your API key and select a model
+
+### Get API Keys
+- **Zhipu AI**: https://open.bigmodel.cn/
+- **Qwen**: https://dashscope.aliyun.com/
+- **Doubao**: https://console.volcengine.com/
+
+📖 **Detailed Guide**: See [CHINESE_MODEL_INTEGRATION.md](./CHINESE_MODEL_INTEGRATION.md) for complete setup instructions.
 
 ## 📂 Where Are My Designs Stored?
 

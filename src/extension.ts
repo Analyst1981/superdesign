@@ -3,7 +3,10 @@
 import * as vscode from 'vscode';
 import { CustomAgentService } from './services/customAgentService';
 import { ChatSidebarProvider } from './providers/chatSidebarProvider';
+import { SettingsWebviewProvider } from './webview/SettingsWebviewProvider';
 import { Logger, LogLevel } from './services/logger';
+import { ConnectionTester } from './services/connection-tester';
+import { SettingsManager } from './services/settings-manager';
 import * as path from 'path';
 
 // This method is called when your extension is activated
@@ -1252,6 +1255,16 @@ export function activate(context: vscode.ExtensionContext) {
 	const customAgent = new CustomAgentService(Logger.getOutputChannel());
 	Logger.info('CustomAgentService created');
 
+	// Initialize connection testing service
+	Logger.info('Creating ConnectionTester...');
+	const connectionTester = ConnectionTester.getInstance(Logger.getOutputChannel());
+	Logger.info('ConnectionTester created');
+
+	// Initialize settings management service
+	Logger.info('Creating SettingsManager...');
+	const settingsManager = SettingsManager.getInstance(Logger.getOutputChannel());
+	Logger.info('SettingsManager created');
+
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
@@ -1295,6 +1308,19 @@ export function activate(context: vscode.ExtensionContext) {
 		await configureGLMApiKey();
 	});
 
+	// Register additional Chinese LLM API key configuration commands
+	const configureZhipuApiKeyDisposable = vscode.commands.registerCommand('superdesign.configureZhipuApiKey', async () => {
+		await configureZhipuApiKey();
+	});
+
+	const configureQwenApiKeyDisposable = vscode.commands.registerCommand('superdesign.configureQwenApiKey', async () => {
+		await configureQwenApiKey();
+	});
+
+	const configureDoubaoApiKeyDisposable = vscode.commands.registerCommand('superdesign.configureDoubaoApiKey', async () => {
+		await configureDoubaoApiKey();
+	});
+
 	// Create the chat sidebar provider
 	const sidebarProvider = new ChatSidebarProvider(context.extensionUri, customAgent, Logger.getOutputChannel());
 	
@@ -1302,6 +1328,18 @@ export function activate(context: vscode.ExtensionContext) {
 	const sidebarDisposable = vscode.window.registerWebviewViewProvider(
 		ChatSidebarProvider.VIEW_TYPE,
 		sidebarProvider,
+		{
+			webviewOptions: {
+				retainContextWhenHidden: true
+			}
+		}
+	);
+
+	// Register the webview view provider for settings
+	const settingsProvider = new SettingsWebviewProvider(context.extensionUri);
+	const settingsDisposable = vscode.window.registerWebviewViewProvider(
+		SettingsWebviewProvider.viewType,
+		settingsProvider,
 		{
 			webviewOptions: {
 				retainContextWhenHidden: true
@@ -1341,12 +1379,47 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Register open settings command
 	const openSettingsDisposable = vscode.commands.registerCommand('superdesign.openSettings', () => {
-		vscode.commands.executeCommand('workbench.action.openSettings', '@ext:iganbold.superdesign');
+		SettingsWebviewProvider.createOrShow(context.extensionUri);
 	});
 
 	// Register configure API key command (alternative to the existing one)
 	const configureApiKeyQuickDisposable = vscode.commands.registerCommand('superdesign.configureApiKeyQuick', async () => {
 		await configureAnthropicApiKey();
+	});
+
+	// Register connection testing commands
+	const testConnectionDisposable = vscode.commands.registerCommand('superdesign.testConnection', async () => {
+		await testConnectionCommand(connectionTester);
+	});
+
+	const testAllConnectionsDisposable = vscode.commands.registerCommand('superdesign.testAllConnections', async () => {
+		await testAllConnectionsCommand(connectionTester);
+	});
+
+	// Register settings management commands
+	const exportSettingsDisposable = vscode.commands.registerCommand('superdesign.exportSettings', async () => {
+		await exportSettingsCommand(settingsManager);
+	});
+
+	const importSettingsDisposable = vscode.commands.registerCommand('superdesign.importSettings', async () => {
+		await importSettingsCommand(settingsManager);
+	});
+
+	const backupSettingsDisposable = vscode.commands.registerCommand('superdesign.backupSettings', async () => {
+		await backupSettingsCommand(settingsManager);
+	});
+
+	const restoreSettingsDisposable = vscode.commands.registerCommand('superdesign.restoreSettings', async () => {
+		await restoreSettingsCommand(settingsManager);
+	});
+
+	const resetSettingsDisposable = vscode.commands.registerCommand('superdesign.resetSettings', async () => {
+		await resetSettingsCommand(settingsManager);
+	});
+
+	// Register diagnostic commands
+	const networkDiagnosticDisposable = vscode.commands.registerCommand('superdesign.networkDiagnostic', async () => {
+		await networkDiagnosticCommand(connectionTester);
 	});
 
 	// Set up message handler for auto-canvas functionality
@@ -1417,14 +1490,26 @@ export function activate(context: vscode.ExtensionContext) {
 		configureDeepSeekApiKeyDisposable,
 		configureKimiApiKeyDisposable,
 		configureGLMApiKeyDisposable,
+		configureZhipuApiKeyDisposable,
+		configureQwenApiKeyDisposable,
+		configureDoubaoApiKeyDisposable,
 		sidebarDisposable,
+		settingsDisposable,
 		showSidebarDisposable,
 		openCanvasDisposable,
 		clearChatDisposable,
 		resetWelcomeDisposable,
 		initializeProjectDisposable,
 		openSettingsDisposable,
-		configureApiKeyQuickDisposable
+		configureApiKeyQuickDisposable,
+		testConnectionDisposable,
+		testAllConnectionsDisposable,
+		exportSettingsDisposable,
+		importSettingsDisposable,
+		backupSettingsDisposable,
+		restoreSettingsDisposable,
+		resetSettingsDisposable,
+		networkDiagnosticDisposable
 	);
 }
 
@@ -1759,6 +1844,132 @@ async function configureGLMApiKey() {
 					vscode.ConfigurationTarget.Global
 				);
 				vscode.window.showInformationMessage('✅ GLM API key configured successfully!');
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to save API key: ${error}`);
+			}
+		} else if (currentKey) {
+			vscode.window.showInformationMessage('API key unchanged (already configured)');
+		} else {
+			vscode.window.showWarningMessage('No API key was set');
+		}
+	}
+}
+
+// Function to configure Zhipu API key
+async function configureZhipuApiKey() {
+	const currentKey = vscode.workspace.getConfiguration('superdesign').get<string>('zhipuApiKey');
+
+	const input = await vscode.window.showInputBox({
+		title: 'Configure Zhipu API Key',
+		prompt: 'Enter your Zhipu API key (get one from https://open.bigmodel.cn/)',
+		value: currentKey ? '••••••••••••••••' : '',
+		password: true,
+		placeHolder: 'zhipu-...',
+		validateInput: (value) => {
+			if (!value || value.trim().length === 0) {
+				return 'API key cannot be empty';
+			}
+			if (value === '••••••••••••••••') {
+				return null; // User didn't change the masked value, that's OK
+			}
+			return null;
+		}
+	});
+
+	if (input !== undefined) {
+		// Only update if user didn't just keep the masked value
+		if (input !== '••••••••••••••••') {
+			try {
+				await vscode.workspace.getConfiguration('superdesign').update(
+					'zhipuApiKey', 
+					input.trim(), 
+					vscode.ConfigurationTarget.Global
+				);
+				vscode.window.showInformationMessage('✅ Zhipu API key configured successfully!');
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to save API key: ${error}`);
+			}
+		} else if (currentKey) {
+			vscode.window.showInformationMessage('API key unchanged (already configured)');
+		} else {
+			vscode.window.showWarningMessage('No API key was set');
+		}
+	}
+}
+
+// Function to configure Qwen API key
+async function configureQwenApiKey() {
+	const currentKey = vscode.workspace.getConfiguration('superdesign').get<string>('qwenApiKey');
+
+	const input = await vscode.window.showInputBox({
+		title: 'Configure Qwen API Key',
+		prompt: 'Enter your Qwen API key (get one from https://dashscope.aliyun.com/)',
+		value: currentKey ? '••••••••••••••••' : '',
+		password: true,
+		placeHolder: 'sk-...',
+		validateInput: (value) => {
+			if (!value || value.trim().length === 0) {
+				return 'API key cannot be empty';
+			}
+			if (value === '••••••••••••••••') {
+				return null; // User didn't change the masked value, that's OK
+			}
+			return null;
+		}
+	});
+
+	if (input !== undefined) {
+		// Only update if user didn't just keep the masked value
+		if (input !== '••••••••••••••••') {
+			try {
+				await vscode.workspace.getConfiguration('superdesign').update(
+					'qwenApiKey', 
+					input.trim(), 
+					vscode.ConfigurationTarget.Global
+				);
+				vscode.window.showInformationMessage('✅ Qwen API key configured successfully!');
+			} catch (error) {
+				vscode.window.showErrorMessage(`Failed to save API key: ${error}`);
+			}
+		} else if (currentKey) {
+			vscode.window.showInformationMessage('API key unchanged (already configured)');
+		} else {
+			vscode.window.showWarningMessage('No API key was set');
+		}
+	}
+}
+
+// Function to configure Doubao API key
+async function configureDoubaoApiKey() {
+	const currentKey = vscode.workspace.getConfiguration('superdesign').get<string>('doubaoApiKey');
+
+	const input = await vscode.window.showInputBox({
+		title: 'Configure Doubao API Key',
+		prompt: 'Enter your Doubao API key (get one from https://console.volcengine.com/)',
+		value: currentKey ? '••••••••••••••••' : '',
+		password: true,
+		placeHolder: 'doubao-...',
+		validateInput: (value) => {
+			if (!value || value.trim().length === 0) {
+				return 'API key cannot be empty';
+			}
+			if (value === '••••••••••••••••') {
+				return null; // User didn't change the masked value, that's OK
+			}
+			return null;
+		}
+	});
+
+	if (input !== undefined) {
+		// Only update if user didn't just keep the masked value
+		if (input !== '••••••••••••••••') {
+			try {
+				await vscode.workspace.getConfiguration('superdesign').update(
+					'doubaoApiKey', 
+					input.trim(), 
+					vscode.ConfigurationTarget.Global
+				);
+				vscode.window.showInformationMessage('✅ Doubao API key configured successfully!');
 			} catch (error) {
 				vscode.window.showErrorMessage(`Failed to save API key: ${error}`);
 			}
@@ -2113,8 +2324,320 @@ function getNonce() {
 	return text;
 }
 
+// ===== 新增功能命令实现 =====
+
+// 连接测试命令
+async function testConnectionCommand(connectionTester: ConnectionTester) {
+	try {
+		const config = vscode.workspace.getConfiguration('superdesign');
+		const providerType = config.get<string>('llmProvider', 'claude-api');
+		
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: `正在测试 ${providerType} 连接...`,
+			cancellable: true
+		}, async (progress, token) => {
+			try {
+				const result = await connectionTester.testConnection(providerType as any, {
+					timeout: 15000,
+					enableDiagnostics: true
+				});
+				
+				if (result.success) {
+					vscode.window.showInformationMessage(
+						`✅ ${providerType} 连接成功！延迟: ${result.latency}ms`,
+						{ modal: true }
+					);
+				} else {
+					vscode.window.showErrorMessage(
+						`❌ ${providerType} 连接失败: ${result.error}`,
+						{ modal: true }
+					);
+				}
+			} catch (error) {
+				vscode.window.showErrorMessage(`连接测试失败: ${error}`);
+			}
+		});
+	} catch (error) {
+		Logger.error(`Connection test command failed: ${error}`);
+		vscode.window.showErrorMessage(`连接测试失败: ${error}`);
+	}
+}
+
+// 批量连接测试命令
+async function testAllConnectionsCommand(connectionTester: ConnectionTester) {
+	try {
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: '正在测试所有提供商连接...',
+			cancellable: true
+		}, async (progress, token) => {
+			try {
+				const providers = [
+					'claude-api', 'claude-code', 'modelscope', 'deepseek',
+					'kimi', 'glm', 'zhipu', 'qwen', 'doubao'
+				];
+				
+				const result = await connectionTester.testMultipleConnections(providers as any, {
+					concurrency: 3,
+					timeout: 10000
+				});
+				
+				const message = `连接测试完成: ${result.overall.successfulProviders}/${result.overall.totalProviders} 成功，平均延迟: ${result.overall.averageLatency.toFixed(0)}ms`;
+				
+				if (result.overall.success) {
+					vscode.window.showInformationMessage(message, { modal: true });
+				} else {
+					vscode.window.showWarningMessage(message, { modal: true });
+				}
+				
+				// 显示详细结果
+				const failedProviders = result.providers.filter(p => !p.success);
+				if (failedProviders.length > 0) {
+					const failedList = failedProviders.map(p => p.provider).join(', ');
+					vscode.window.showInformationMessage(`失败的提供商: ${failedList}`);
+				}
+			} catch (error) {
+				vscode.window.showErrorMessage(`批量连接测试失败: ${error}`);
+			}
+		});
+	} catch (error) {
+		Logger.error(`Batch connection test command failed: ${error}`);
+		vscode.window.showErrorMessage(`批量连接测试失败: ${error}`);
+	}
+}
+
+// 导出设置命令
+async function exportSettingsCommand(settingsManager: SettingsManager) {
+	try {
+		const exportOptions = await vscode.window.showQuickPick([
+			{ label: '完整导出（包含敏感信息）', value: { includeSensitive: true } },
+			{ label: '安全导出（不包含敏感信息）', value: { includeSensitive: false } }
+		], {
+			placeHolder: '选择导出选项',
+			canPickMany: false
+		});
+		
+		if (!exportOptions) return;
+		
+		const uri = await vscode.window.showSaveDialog({
+			filters: {
+				'JSON': ['json'],
+				'All files': ['*']
+			},
+			defaultUri: vscode.Uri.file(`superdesign-settings-${new Date().toISOString().split('T')[0]}.json`)
+		});
+		
+		if (!uri) return;
+		
+		const settings = await settingsManager.exportSettings(exportOptions.value);
+		
+		// 保存到文件
+		const fs = require('fs');
+		fs.writeFileSync(uri.fsPath, JSON.stringify(settings, null, 2));
+		
+		vscode.window.showInformationMessage(`设置已导出到: ${uri.fsPath}`);
+	} catch (error) {
+		Logger.error(`Export settings command failed: ${error}`);
+		vscode.window.showErrorMessage(`导出设置失败: ${error}`);
+	}
+}
+
+// 导入设置命令
+async function importSettingsCommand(settingsManager: SettingsManager) {
+	try {
+		const uri = await vscode.window.showOpenDialog({
+			filters: {
+				'JSON': ['json'],
+				'All files': ['*']
+			},
+			canSelectMany: false,
+			title: '选择要导入的设置文件'
+		});
+		
+		if (!uri || uri.length === 0) return;
+		
+		const fs = require('fs');
+		const settingsData = JSON.parse(fs.readFileSync(uri[0].fsPath, 'utf8'));
+		
+		const importOptions = await vscode.window.showQuickPick([
+			{ label: '覆盖现有设置', value: { overwrite: true } },
+			{ label: '合并到现有设置', value: { merge: true } }
+		], {
+			placeHolder: '选择导入方式',
+			canPickMany: false
+		});
+		
+		if (!importOptions) return;
+		
+		const success = await settingsManager.importSettings(settingsData, {
+			...importOptions.value,
+			backupBeforeImport: true,
+			validate: true,
+			autoRepair: true
+		});
+		
+		if (success) {
+			vscode.window.showInformationMessage('设置导入成功！');
+		} else {
+			vscode.window.showErrorMessage('设置导入失败');
+		}
+	} catch (error) {
+		Logger.error(`Import settings command failed: ${error}`);
+		vscode.window.showErrorMessage(`导入设置失败: ${error}`);
+	}
+}
+
+// 备份设置命令
+async function backupSettingsCommand(settingsManager: SettingsManager) {
+	try {
+		const description = await vscode.window.showInputBox({
+			placeHolder: '输入备份描述（可选）',
+			prompt: '为这个备份添加描述信息'
+		});
+		
+		const backup = await settingsManager.createBackup(description || undefined);
+		
+		vscode.window.showInformationMessage(
+			`设置备份创建成功！备份ID: ${backup.id}`,
+			{ modal: true }
+		);
+	} catch (error) {
+		Logger.error(`Backup settings command failed: ${error}`);
+		vscode.window.showErrorMessage(`备份设置失败: ${error}`);
+	}
+}
+
+// 恢复设置命令
+async function restoreSettingsCommand(settingsManager: SettingsManager) {
+	try {
+		const backups = await settingsManager.getBackups();
+		
+		if (backups.length === 0) {
+			vscode.window.showInformationMessage('没有可用的备份');
+			return;
+		}
+		
+		const backupOptions = backups.map(backup => ({
+			label: `${backup.description || '无描述'} - ${new Date(backup.timestamp).toLocaleString()}`,
+			value: backup
+		}));
+		
+		const selected = await vscode.window.showQuickPick(backupOptions, {
+			placeHolder: '选择要恢复的备份',
+			canPickMany: false
+		});
+		
+		if (!selected) return;
+		
+		const confirm = await vscode.window.showWarningMessage(
+			`确定要恢复到备份 "${selected.value.description || selected.value.id}" 吗？当前设置将被覆盖。`,
+			{ modal: true },
+			'确定', '取消'
+		);
+		
+		if (confirm !== '确定') return;
+		
+		const success = await settingsManager.restoreBackup(selected.value);
+		
+		if (success) {
+			vscode.window.showInformationMessage('设置恢复成功！');
+		} else {
+			vscode.window.showErrorMessage('设置恢复失败');
+		}
+	} catch (error) {
+		Logger.error(`Restore settings command failed: ${error}`);
+		vscode.window.showErrorMessage(`恢复设置失败: ${error}`);
+	}
+}
+
+// 重置设置命令
+async function resetSettingsCommand(settingsManager: SettingsManager) {
+	try {
+		const confirm = await vscode.window.showWarningMessage(
+			'确定要重置所有设置吗？此操作不可撤销。',
+			{ modal: true },
+			'确定重置', '取消'
+		);
+		
+		if (confirm !== '确定重置') return;
+		
+		const createBackup = await vscode.window.showQuickPick([
+			{ label: '创建备份后重置', value: true },
+			{ label: '直接重置（不创建备份）', value: false }
+		], {
+			placeHolder: '选择重置方式',
+			canPickMany: false
+		});
+		
+		if (!createBackup) return;
+		
+		const success = await settingsManager.resetAllSettings(createBackup.value);
+		
+		if (success) {
+			vscode.window.showInformationMessage('所有设置已重置');
+		} else {
+			vscode.window.showErrorMessage('重置设置失败');
+		}
+	} catch (error) {
+		Logger.error(`Reset settings command failed: ${error}`);
+		vscode.window.showErrorMessage(`重置设置失败: ${error}`);
+	}
+}
+
+// 网络诊断命令
+async function networkDiagnosticCommand(connectionTester: ConnectionTester) {
+	try {
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: '正在运行网络诊断...',
+			cancellable: true
+		}, async (progress, token) => {
+			try {
+				const diagnostics = await connectionTester.getDetailedNetworkDiagnostics();
+				
+				let message = `网络诊断结果:\n`;
+				message += `状态: ${diagnostics.status}\n`;
+				
+				if (diagnostics.latency) {
+					message += `延迟: ${diagnostics.latency}ms\n`;
+				}
+				
+				if (diagnostics.downloadSpeed) {
+					message += `下载速度: ${diagnostics.downloadSpeed} Mbps\n`;
+				}
+				
+				if (diagnostics.uploadSpeed) {
+					message += `上传速度: ${diagnostics.uploadSpeed} Mbps\n`;
+				}
+				
+				if (diagnostics.packetLoss) {
+					message += `丢包率: ${diagnostics.packetLoss}%\n`;
+				}
+				
+				if (diagnostics.dnsTime) {
+					message += `DNS解析时间: ${diagnostics.dnsTime}ms\n`;
+				}
+				
+				vscode.window.showInformationMessage(message, { modal: true });
+			} catch (error) {
+				vscode.window.showErrorMessage(`网络诊断失败: ${error}`);
+			}
+		});
+	} catch (error) {
+		Logger.error(`Network diagnostic command failed: ${error}`);
+		vscode.window.showErrorMessage(`网络诊断失败: ${error}`);
+	}
+}
+
 // This method is called when your extension is deactivated
 export function deactivate() {
 	Logger.dispose();
 }
 
+
+// Benchmark comment
+
+// Benchmark comment
+
+// Benchmark comment

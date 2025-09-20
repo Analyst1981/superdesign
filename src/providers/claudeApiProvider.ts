@@ -4,20 +4,39 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { LLMProvider, LLMProviderOptions, LLMMessage, LLMStreamCallback } from './llmProvider';
 import { Logger } from '../services/logger';
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, streamText } from 'ai';
 
-// Dynamic import types for Claude Code SDK
-type SDKMessage = any;
-type ClaudeCodeOptions = any;
-type QueryFunction = (params: {
-    prompt: string;
-    abortController?: AbortController;
-    options?: any;
-}) => AsyncGenerator<SDKMessage>;
+// 临时类型定义，用于兼容Claude Code SDK
+interface ClaudeCodeOptions {
+    maxTurns?: number;
+    allowedTools?: string[];
+    permissionMode?: string;
+    cwd?: string;
+    customSystemPrompt?: string;
+    resume?: string;
+}
+
+interface SDKMessage {
+    type: string;
+    content: any;
+    role?: string;
+    text?: string;
+    result?: any;
+    is_error?: boolean;
+    session_id?: string;
+    parent_tool_use_id?: string;
+    duration_ms?: number;
+    total_cost_usd?: number;
+    subtype?: string;
+    message?: string;
+}
 
 export class ClaudeApiProvider extends LLMProvider {
     private workingDirectory: string = '';
     private currentSessionId: string | null = null;
-    private claudeCodeQuery: QueryFunction | null = null;
+    private anthropicClient: any = null;
+    private claudeCodeQuery: any = null;
 
     constructor(outputChannel: vscode.OutputChannel) {
         super(outputChannel);
@@ -44,59 +63,10 @@ export class ClaudeApiProvider extends LLMProvider {
                 throw new Error('Missing API key');
             }
 
-            // Set the environment variable for Claude Code SDK
-            process.env.ANTHROPIC_API_KEY = apiKey;
-
-            // Dynamically import Claude Code SDK
-            Logger.info('Importing Claude Code SDK...');
-            try {
-                // Try importing from the copied module location first
-                let claudeCodeModule;
-                try {
-                    // Try multiple possible paths for the extension location
-                    const possiblePaths = [
-                        path.resolve(__dirname, '..', 'node_modules', '@anthropic-ai', 'claude-code', 'sdk.mjs'),
-                        path.resolve(__dirname, 'node_modules', '@anthropic-ai', 'claude-code', 'sdk.mjs'),
-                        path.join(__dirname, '..', 'node_modules', '@anthropic-ai', 'claude-code', 'sdk.mjs')
-                    ];
-                    
-                    let importSucceeded = false;
-                    for (const modulePath of possiblePaths) {
-                        try {
-                            if (fs.existsSync(modulePath)) {
-                                claudeCodeModule = await import(`file://${modulePath}`);
-                                importSucceeded = true;
-                                break;
-                            }
-                        } catch (pathError) {
-                            continue;
-                        }
-                    }
-                    
-                    if (!importSucceeded) {
-                        throw new Error('All local import paths failed');
-                    }
-                } catch (localImportError) {
-                    // Fallback to standard import
-                    try {
-                        claudeCodeModule = await import('@anthropic-ai/claude-code');
-                    } catch (standardImportError) {
-                        Logger.error(`Claude Code SDK import failed: ${standardImportError}`);
-                        throw standardImportError;
-                    }
-                }
-                
-                this.claudeCodeQuery = claudeCodeModule.query;
-                
-                if (!this.claudeCodeQuery) {
-                    throw new Error('Query function not found in Claude Code module');
-                }
-                
-                Logger.info('Claude Code SDK imported successfully');
-            } catch (importError) {
-                Logger.error(`Failed to import Claude Code SDK: ${importError}`);
-                throw new Error(`Claude Code SDK import failed: ${importError}`);
-            }
+            // Initialize Anthropic client
+            this.anthropicClient = anthropic(apiKey);
+            
+            Logger.info('Anthropic SDK initialized successfully');
 
             this.isInitialized = true;
             Logger.info('Claude API provider initialized successfully');
@@ -341,18 +311,10 @@ Your goal is to extract a generalized and reusable design system from the screen
     private convertToLLMMessage(sdkMessage: SDKMessage): LLMMessage {
         // Convert SDK message format to our standardized LLMMessage format
         const llmMessage: LLMMessage = {
+            ...sdkMessage, // Include all properties from sdkMessage
+            // Override specific properties if needed
             type: sdkMessage.type,
-            subtype: sdkMessage.subtype,
-            message: sdkMessage.message,
-            content: sdkMessage.content,
-            text: sdkMessage.text,
-            result: sdkMessage.result,
-            is_error: sdkMessage.is_error,
-            session_id: sdkMessage.session_id,
-            parent_tool_use_id: sdkMessage.parent_tool_use_id,
-            duration_ms: sdkMessage.duration_ms,
-            total_cost_usd: sdkMessage.total_cost_usd,
-            ...sdkMessage // Include any other properties
+            content: sdkMessage.content
         };
 
         return llmMessage;

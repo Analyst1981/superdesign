@@ -240,7 +240,7 @@ export class ModelScopeProvider extends LLMProvider {
      * 计算API调用成本
      */
     private calculateCost(usage: any): number {
-        if (!usage) return 0;
+        if (!usage) {return 0;}
         
         // ModelScope的计费方式（示例，实际需要根据官方文档调整）
         const inputTokens = usage.input_tokens || 0;

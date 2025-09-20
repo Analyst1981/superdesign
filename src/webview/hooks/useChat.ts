@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import * as React from 'react';
 import { CoreMessage } from 'ai';
 
 // Additional metadata for UI state
@@ -36,7 +36,7 @@ export type ChatMessage = CoreMessage & {
 export interface ChatHookResult {
     chatHistory: ChatMessage[];
     isLoading: boolean;
-    sendMessage: (message: string) => void;
+    sendMessage: (message: string, model?: string) => void;
     clearHistory: () => void;
     setChatHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 }
@@ -179,7 +179,7 @@ export function useChat(vscode: any): ChatHookResult {
         }
     }, []);
 
-    const sendMessage = useCallback((message: string) => {
+    const sendMessage = useCallback((message: string, model?: string) => {
         setIsLoading(true);
         
         // Clean incomplete tool calls from existing history
@@ -197,10 +197,11 @@ export function useChat(vscode: any): ChatHookResult {
         const newHistory = [...cleanedHistory, userMessage];
         setChatHistory(newHistory);
         
-        // Send to extension with cleaned history
+        // Send to extension with cleaned history and model information
         vscode.postMessage({
             command: 'chatMessage',
             message: message,
+            model: model,
             chatHistory: newHistory
         });
     }, [chatHistory, vscode]);

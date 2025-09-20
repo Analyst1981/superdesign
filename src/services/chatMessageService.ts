@@ -17,11 +17,16 @@ export class ChatMessageService {
             const chatHistory: CoreMessage[] = message.chatHistory || [];
             const latestMessage = message.message || '';
             const messageContent = message.messageContent || latestMessage;
+            const selectedModel = message.model || undefined;
             
             console.log('========chatHistory', chatHistory);
+            console.log('========selectedModel', selectedModel);
 
             Logger.info(`Chat message received with ${chatHistory.length} history messages`);
             Logger.info(`Latest message: ${latestMessage}`);
+            if (selectedModel) {
+                Logger.info(`Selected model: ${selectedModel}`);
+            }
             
             // Debug structured content
             if (typeof messageContent !== 'string' && Array.isArray(messageContent)) {
@@ -69,13 +74,18 @@ export class ChatMessageService {
             
             // Use conversation history or single prompt
             let response: any[];
+            const options = selectedModel ? { model: selectedModel } : undefined;
+            
             if (chatHistory.length > 0) {
                 // Use conversation history - CoreMessage format is already compatible
                 this.outputChannel.appendLine(`Using conversation history with ${chatHistory.length} messages`);
+                if (selectedModel) {
+                    this.outputChannel.appendLine(`Using selected model: ${selectedModel}`);
+                }
                 response = await this.agentService.query(
                     undefined, // no prompt 
                     chatHistory, // use CoreMessage array directly
-                    undefined, 
+                    options, 
                     this.currentRequestController,
                     (streamMessage: any) => {
                         // Process and send each message as it arrives
@@ -85,10 +95,13 @@ export class ChatMessageService {
             } else {
                 // Fallback to single prompt for first message
                 this.outputChannel.appendLine('No conversation history, using single prompt');
+                if (selectedModel) {
+                    this.outputChannel.appendLine(`Using selected model: ${selectedModel}`);
+                }
                 response = await this.agentService.query(
                     latestMessage, // use latest message as prompt
                     undefined, // no messages array
-                    undefined, 
+                    options, 
                     this.currentRequestController,
                     (streamMessage: any) => {
                         // Process and send each message as it arrives

@@ -7,10 +7,19 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "noEmit": false
+    "noEmit": false,
+    "types": ["node", "jest", "mocha", "@types/vscode"],
+    "sourceMap": true,
+    "inlineSources": true
   },
   "include": [
     "src/test/**/*",
-    "src/core/**/*"
+    "src/core/**/*",
+    "src/providers/**/*",
+    "src/services/**/*",
+    "src/types/**/*",
+    "src/config/**/*",
+    "src/utils/**/*",
+    "test/**/*"
   ]
 } 
